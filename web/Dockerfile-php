@@ -1,0 +1,36 @@
+# Use the official PHP image as the base image
+FROM php:8.1-apache
+
+# Install necessary extensions and packages
+RUN apt-get update \
+    && apt-get install -y \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        libzip-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd mysqli pdo_mysql zip \
+    && a2enmod rewrite
+
+# Set the working directory
+WORKDIR /var/www/html
+
+# Copy your PHP application files into the container
+COPY . /var/www/html/
+
+# Set permissions if necessary
+# RUN chown -R www-data:www-data /var/www/html
+
+# Copy custom php.ini file into the container
+COPY web/php.ini /usr/local/etc/php/
+
+# Update php.ini configurations
+RUN sed -i 's/memory_limit = .*/memory_limit = 512M/' /usr/local/etc/php/php.ini
+RUN sed -i 's/upload_max_filesize = .*/upload_max_filesize = 100M/' /usr/local/etc/php/php.ini
+RUN sed -i 's/post_max_size = .*/post_max_size = 100M/' /usr/local/etc/php/php.ini
+
+# Expose port 80 for Apache
+EXPOSE 80
+
+# Command to run when the container starts
+CMD ["apache2-foreground"]
